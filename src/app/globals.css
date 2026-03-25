@@ -128,3 +128,11 @@
     @apply font-sans;
   }
 }
+
+@theme inline {
+  --font-sans: var(--font-ibm-plex), ui-sans-serif, system-ui, sans-serif;
+}
+
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
