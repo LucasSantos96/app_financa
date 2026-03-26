@@ -12,8 +12,10 @@ const ibmPlexSans = IBM_Plex_Sans({
 export const metadata: Metadata = {
   title: "App Finanças",
   description: "Gestão financeira pessoal",
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: "/favicon.png",
+    apple: "/apple-touch-icon.png",
   },
 };
 
