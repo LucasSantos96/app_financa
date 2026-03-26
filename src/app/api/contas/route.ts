@@ -27,6 +27,20 @@ function addMonths(mes: number, ano: number, offset: number) {
   }
 }
 
+function getInitialCompetencia(mes: number, ano: number, dataVencimento: number) {
+  const now = new Date()
+  const mesAtual = now.getMonth() + 1
+  const anoAtual = now.getFullYear()
+
+  const isMesAtual = mes === mesAtual && ano === anoAtual
+
+  if (isMesAtual && dataVencimento < now.getDate()) {
+    return addMonths(mes, ano, 1)
+  }
+
+  return { mes, ano }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -59,12 +73,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Parcela atual não pode ser maior que o total" }, { status: 400 })
     }
 
+    const competenciaInicial = getInitialCompetencia(mesNum, anoNum, dataVencimentoNum)
+
     if (parceladaBool) {
       const contasCriadas = []
 
       for (let parcela = parcelaAtualNum; parcela <= totalParcelasNum; parcela += 1) {
         const offset = parcela - parcelaAtualNum
-        const competencia = addMonths(mesNum, anoNum, offset)
+        const competencia = addMonths(competenciaInicial.mes, competenciaInicial.ano, offset)
 
         const contaCriada = await prisma.contaMensal.create({
           data: {
@@ -95,9 +111,9 @@ export async function POST(req: NextRequest) {
         nome,
         valor: valorNum,
         dataVencimento: dataVencimentoNum,
-        mes: mesNum,
-        ano: anoNum,
-        status: getStatusByReferenceDate(dataVencimentoNum, mesNum, anoNum),
+        mes: competenciaInicial.mes,
+        ano: competenciaInicial.ano,
+        status: getStatusByReferenceDate(dataVencimentoNum, competenciaInicial.mes, competenciaInicial.ano),
         tipo: tipo || "OUTROS",
         fixa: fixaBool,
         parcelada: false,
