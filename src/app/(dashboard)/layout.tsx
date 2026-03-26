@@ -40,8 +40,8 @@ export default async function DashboardLayout({
     },
   })
 
-  const totalEntradas = entradas.reduce((acc, e) => acc + e.valor, 0)
-  const totalSaidas = saidas.reduce((acc, s) => acc + s.valor, 0)
+  const totalEntradas = entradas.reduce((acc: number, e: { valor: number }) => acc + e.valor, 0)
+  const totalSaidas = saidas.reduce((acc: number, s: { valor: number }) => acc + s.valor, 0)
   const saldo = totalEntradas - totalSaidas
 
   const reserva = await prisma.reservaEmergencia.findFirst({
