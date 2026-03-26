@@ -1,6 +1,6 @@
 # App Finanças - Gestão Financeira Pessoal
 
-Aplicação web para controle financeiro pessoal, desenvolvido com Next.js, TypeScript, Tailwind CSS e Prisma.
+Aplicação web para controle financeiro pessoal, desenvolvida com Next.js, TypeScript, Tailwind CSS e Prisma.
 
 ## 🚀 Funcionalidades
 
@@ -19,7 +19,7 @@ Aplicação web para controle financeiro pessoal, desenvolvido com Next.js, Type
 - **Linguagem**: TypeScript
 - **Estilização**: Tailwind CSS + shadcn/ui
 - **Ícones**: Lucide React
-- **Banco de Dados**: SQLite (Prisma ORM)
+- **Banco de Dados**: MongoDB (Prisma ORM)
 - **Autenticação**: NextAuth.js
 - **Gráficos**: Recharts
 
@@ -48,15 +48,16 @@ cp .env.example .env
 
 Edite o arquivo `.env`:
 ```env
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="mongodb+srv://usuario:senha@cluster.mongodb.net/app_financa"
 NEXTAUTH_SECRET="sua-chave-secreta-aqui"
 NEXTAUTH_URL="http://localhost:3000"
 ```
 
-4. Execute o seed do banco de dados:
+4. Gere o client do Prisma e execute o seed do banco de dados:
 ```bash
-npx prisma db push
-npx prisma db seed
+npm run db:generate
+npm run db:push
+npm run db:seed
 ```
 
 5. Inicie o servidor de desenvolvimento:
@@ -66,9 +67,10 @@ npm run dev
 
 6. Acesse `http://localhost:3000`
 
-### Usuário de teste
-- **Email**: teste@email.com
-- **Senha**: 123456
+### Credenciais de teste (somente desenvolvimento)
+- **Email**: `teste@email.com`
+- **Senha**: `123456`
+- **Importante**: use apenas para ambiente local e altere o usuário/senha antes de publicar ou compartilhar o projeto.
 
 ## 📱 Estrutura do Projeto
 
