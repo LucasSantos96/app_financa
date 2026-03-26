@@ -25,11 +25,11 @@ export default async function ContasPage() {
     orderBy: { dataVencimento: 'asc' },
   })
 
-  const contasPendentes = contas.filter(c => c.status === 'PENDENTE')
-  const contasAtrasadas = contas.filter(c => c.status === 'ATRASADA')
+  const contasPendentes = contas.filter((c: { status: string }) => c.status === 'PENDENTE')
+  const contasAtrasadas = contas.filter((c: { status: string }) => c.status === 'ATRASADA')
 
-  const totalPendentes = contasPendentes.reduce((acc, c) => acc + c.valor, 0)
-  const totalAtrasadas = contasAtrasadas.reduce((acc, c) => acc + c.valor, 0)
+  const totalPendentes = contasPendentes.reduce((acc: number, c: { valor: number }) => acc + c.valor, 0)
+  const totalAtrasadas = contasAtrasadas.reduce((acc: number, c: { valor: number }) => acc + c.valor, 0)
 
   const formatCurrency = (value: number) => 
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
