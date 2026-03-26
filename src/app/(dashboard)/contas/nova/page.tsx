@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { formatCurrencyInput, parseCurrencyInput } from "@/lib/currency"
+import { Loader2 } from "lucide-react"
 
 export default function NovaContaPage() {
   const router = useRouter()
@@ -41,6 +42,7 @@ export default function NovaContaPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (loading) return
     setLoading(true)
 
     const valorNumerico = parseCurrencyInput(form.valor)
@@ -207,6 +209,7 @@ export default function NovaContaPage() {
                 Cancelar
               </Button>
               <Button type="submit" disabled={loading} className="flex-1">
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {loading ? "Salvando..." : "Salvar"}
               </Button>
             </div>

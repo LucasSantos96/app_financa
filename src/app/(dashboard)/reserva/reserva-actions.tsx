@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Plus, Minus } from "lucide-react"
+import { Loader2, Plus, Minus } from "lucide-react"
 import { formatCurrencyBRL, formatCurrencyInput, parseCurrencyInput } from "@/lib/currency"
 
 interface ReservaActionsProps {
@@ -30,6 +30,7 @@ export function ReservaActions({ tipo, reservaId, valorAtual, userId }: ReservaA
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (loading) return
     
     const valorNum = parseCurrencyInput(valor)
     
@@ -111,6 +112,7 @@ export function ReservaActions({ tipo, reservaId, valorAtual, userId }: ReservaA
               </p>
             )}
             <Button type="submit" className="w-full" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {loading ? "Processando..." : label}
             </Button>
           </form>

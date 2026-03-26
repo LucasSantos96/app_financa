@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Check, Trash2, Edit } from "lucide-react"
+import { Check, Trash2, Edit, History } from "lucide-react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 
@@ -175,39 +175,36 @@ export function AccountsList({ contas }: AccountsListProps) {
         </div>
       )}
 
-      <p className="text-sm font-semibold mt-4">Histórico de contas pagas</p>
-      {contasPagas.length === 0 ? (
-        <Card>
-          <CardContent className="py-6 text-center text-gray-500">
-            <p>Nenhuma conta paga ainda</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="flex gap-3 overflow-x-auto pb-1 snap-x">
-          {contasPagas.map((conta) => (
-            <Card key={conta.id} className="min-w-[260px] snap-start border-green-200 bg-green-50/40">
-              <CardContent className="p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1">
+      <Card>
+        <CardContent className="p-3">
+          <p className="text-sm font-semibold mb-3 flex items-center gap-2">
+            <History className="h-4 w-4" />
+            Histórico
+          </p>
+          {contasPagas.length === 0 ? (
+            <p className="text-sm text-gray-500 text-center py-3">Nenhuma conta paga ainda</p>
+          ) : (
+            <div className="space-y-3">
+              {contasPagas.map((conta) => (
+                <div key={conta.id} className="flex justify-between items-center text-sm">
+                  <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{conta.nome}</span>
+                      <span className="capitalize">{conta.nome}</span>
                       {conta.parcelada && (
                         <Badge variant="outline" className="text-xs">
                           {conta.parcelaAtual}/{conta.totalParcelas}
                         </Badge>
                       )}
                     </div>
-                    <p className="text-sm text-gray-500">Competência {formatCompetencia(conta.mes, conta.ano)}</p>
+                    <p className="text-xs text-gray-400">Competência {formatCompetencia(conta.mes, conta.ano)}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-green-700">{formatCurrency(conta.valor)}</p>
-                  </div>
+                  <span className="text-green-600">{formatCurrency(conta.valor)}</span>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

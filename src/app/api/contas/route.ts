@@ -3,6 +3,30 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
+function getStatusByReferenceDate(dataVencimento: number, mes: number, ano: number) {
+  const now = new Date()
+  const anoAtual = now.getFullYear()
+  const mesAtual = now.getMonth() + 1
+
+  if (ano < anoAtual || (ano === anoAtual && mes < mesAtual)) {
+    return "ATRASADA" as const
+  }
+
+  if (ano === anoAtual && mes === mesAtual && dataVencimento < now.getDate()) {
+    return "ATRASADA" as const
+  }
+
+  return "PENDENTE" as const
+}
+
+function addMonths(mes: number, ano: number, offset: number) {
+  const total = (ano * 12 + (mes - 1)) + offset
+  return {
+    mes: (total % 12) + 1,
+    ano: Math.floor(total / 12),
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -18,22 +42,67 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Dados inválidos" }, { status: 400 })
     }
 
-    const now = new Date()
-    const status = dataVencimento < now.getDate() ? "ATRASADA" : "PENDENTE"
+    const valorNum = Number(valor)
+    const dataVencimentoNum = Number.parseInt(String(dataVencimento), 10)
+    const mesNum = Number.parseInt(String(mes), 10)
+    const anoNum = Number.parseInt(String(ano), 10)
+    const parceladaBool = Boolean(parcelada)
+    const fixaBool = Boolean(fixa)
+    const parcelaAtualNum = parceladaBool ? Number.parseInt(String(parcelaAtual), 10) || 1 : 1
+    const totalParcelasNum = parceladaBool ? Number.parseInt(String(totalParcelas), 10) || 1 : 1
+
+    if (!Number.isFinite(valorNum) || valorNum <= 0 || !Number.isFinite(dataVencimentoNum)) {
+      return NextResponse.json({ error: "Dados inválidos" }, { status: 400 })
+    }
+
+    if (parceladaBool && parcelaAtualNum > totalParcelasNum) {
+      return NextResponse.json({ error: "Parcela atual não pode ser maior que o total" }, { status: 400 })
+    }
+
+    if (parceladaBool) {
+      const contasCriadas = []
+
+      for (let parcela = parcelaAtualNum; parcela <= totalParcelasNum; parcela += 1) {
+        const offset = parcela - parcelaAtualNum
+        const competencia = addMonths(mesNum, anoNum, offset)
+
+        const contaCriada = await prisma.contaMensal.create({
+          data: {
+            nome,
+            valor: valorNum,
+            dataVencimento: dataVencimentoNum,
+            mes: competencia.mes,
+            ano: competencia.ano,
+            status: getStatusByReferenceDate(dataVencimentoNum, competencia.mes, competencia.ano),
+            tipo: tipo || "OUTROS",
+            fixa: fixaBool,
+            parcelada: true,
+            parcelaAtual: parcela,
+            totalParcelas: totalParcelasNum,
+            observacoes: observacoes || null,
+            usuarioId: session.user.id,
+          },
+        })
+
+        contasCriadas.push(contaCriada)
+      }
+
+      return NextResponse.json(contasCriadas[0])
+    }
 
     const conta = await prisma.contaMensal.create({
       data: {
         nome,
-        valor: parseFloat(valor),
-        dataVencimento: parseInt(dataVencimento),
-        mes: parseInt(mes),
-        ano: parseInt(ano),
-        status,
+        valor: valorNum,
+        dataVencimento: dataVencimentoNum,
+        mes: mesNum,
+        ano: anoNum,
+        status: getStatusByReferenceDate(dataVencimentoNum, mesNum, anoNum),
         tipo: tipo || "OUTROS",
-        fixa: fixa || false,
-        parcelada: parcelada || false,
-        parcelaAtual: parcelada ? parseInt(parcelaAtual) || 1 : 1,
-        totalParcelas: parcelada ? parseInt(totalParcelas) || 1 : 1,
+        fixa: fixaBool,
+        parcelada: false,
+        parcelaAtual: 1,
+        totalParcelas: 1,
         observacoes: observacoes || null,
         usuarioId: session.user.id,
       },
