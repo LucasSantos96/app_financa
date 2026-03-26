@@ -133,11 +133,11 @@ export function AccountsList({ contas }: AccountsListProps) {
           </CardContent>
         </Card>
       ) : (
-        <div className="flex gap-3 overflow-x-auto pb-1 snap-x">
+        <div className="flex flex-nowrap gap-3 overflow-x-auto pb-1 snap-x touch-pan-x [-webkit-overflow-scrolling:touch]">
           {contasAPagar.map((conta) => (
             <Card
               key={conta.id}
-              className={`min-w-[260px] snap-start ${conta.status === "ATRASADA" ? "border-red-300 bg-red-50" : "border-yellow-200 bg-yellow-50"}`}
+              className={`min-w-[260px] shrink-0 snap-start ${conta.status === "ATRASADA" ? "border-red-300 bg-red-50" : "border-yellow-200 bg-yellow-50"}`}
             >
               <CardContent className="p-3">
                 <div className="flex items-start justify-between gap-3">

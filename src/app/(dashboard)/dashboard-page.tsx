@@ -308,11 +308,11 @@ export default function DashboardPage({
           {contasAPagar.length === 0 ? (
             <p className="text-sm text-gray-500">Nenhuma conta pendente.</p>
           ) : (
-            <div className="flex gap-2 overflow-x-auto pb-1 snap-x">
+            <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 snap-x touch-pan-x [-webkit-overflow-scrolling:touch]">
               {contasAPagar.slice(0, 8).map((conta) => (
                 <div
                   key={conta.id}
-                  className={`min-w-[220px] rounded-md border p-2 snap-start ${conta.status === "ATRASADA" ? "border-red-300 bg-red-50" : "border-yellow-200 bg-yellow-50"}`}
+                  className={`min-w-[220px] shrink-0 rounded-md border p-2 snap-start ${conta.status === "ATRASADA" ? "border-red-300 bg-red-50" : "border-yellow-200 bg-yellow-50"}`}
                 >
                   <p className="text-sm font-medium">{conta.nome}</p>
                   <p className="text-xs text-gray-500">
