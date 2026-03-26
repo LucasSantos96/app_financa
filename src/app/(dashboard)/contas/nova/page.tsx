@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { formatCurrencyInput, parseCurrencyInput } from "@/lib/currency"
 
 export default function NovaContaPage() {
   const router = useRouter()
@@ -42,12 +43,21 @@ export default function NovaContaPage() {
     e.preventDefault()
     setLoading(true)
 
+    const valorNumerico = parseCurrencyInput(form.valor)
+
+    if (!Number.isFinite(valorNumerico) || valorNumerico <= 0) {
+      toast.error("Informe um valor válido")
+      setLoading(false)
+      return
+    }
+
     try {
       const res = await fetch("/api/contas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          valor: valorNumerico,
           mes,
           ano,
           fixa: form.fixa === "true",
@@ -94,11 +104,11 @@ export default function NovaContaPage() {
               <Label htmlFor="valor">Valor (R$)</Label>
               <Input
                 id="valor"
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 placeholder="0,00"
                 value={form.valor}
-                onChange={(e) => setForm({ ...form, valor: e.target.value })}
+                onChange={(e) => setForm({ ...form, valor: formatCurrencyInput(e.target.value) })}
                 required
               />
             </div>

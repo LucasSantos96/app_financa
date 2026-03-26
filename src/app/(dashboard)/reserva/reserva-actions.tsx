@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Plus, Minus } from "lucide-react"
+import { formatCurrencyBRL, formatCurrencyInput, parseCurrencyInput } from "@/lib/currency"
 
 interface ReservaActionsProps {
   tipo: "DEPOSITO" | "SAQUE"
@@ -30,7 +31,7 @@ export function ReservaActions({ tipo, reservaId, valorAtual, userId }: ReservaA
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    const valorNum = parseFloat(valor.replace(",", "."))
+    const valorNum = parseCurrencyInput(valor)
     
     if (isNaN(valorNum) || valorNum <= 0) {
       toast.error("Valor inválido")
@@ -96,18 +97,17 @@ export function ReservaActions({ tipo, reservaId, valorAtual, userId }: ReservaA
               <Label htmlFor="valor">Valor</Label>
               <Input
                 id="valor"
-                type="number"
-                step="0.01"
-                min="0"
+                type="text"
+                inputMode="decimal"
                 placeholder="0,00"
                 value={valor}
-                onChange={(e) => setValor(e.target.value)}
+                onChange={(e) => setValor(formatCurrencyInput(e.target.value))}
                 required
               />
             </div>
             {tipo === "SAQUE" && (
               <p className="text-sm text-gray-500">
-                Disponível: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorAtual)}
+                Disponível: {formatCurrencyBRL(valorAtual)}
               </p>
             )}
             <Button type="submit" className="w-full" disabled={loading}>
