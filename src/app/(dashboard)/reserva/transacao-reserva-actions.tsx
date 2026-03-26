@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Pencil, Trash2 } from "lucide-react"
+import { Loader2, Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -36,6 +36,7 @@ export function TransacaoReservaActions({ transacaoId, valor }: TransacaoReserva
 
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (loading) return
 
     const valorNum = parseCurrencyInput(valorEditado)
 
@@ -69,6 +70,7 @@ export function TransacaoReservaActions({ transacaoId, valor }: TransacaoReserva
   }
 
   const handleDelete = async () => {
+    if (loading) return
     setLoading(true)
 
     try {
@@ -121,6 +123,7 @@ export function TransacaoReservaActions({ transacaoId, valor }: TransacaoReserva
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {loading ? "Salvando..." : "Salvar"}
             </Button>
           </form>
@@ -136,6 +139,7 @@ export function TransacaoReservaActions({ transacaoId, valor }: TransacaoReserva
             Essa ação vai remover a transação e recalcular o valor da reserva.
           </p>
           <Button type="button" variant="destructive" onClick={handleDelete} disabled={loading}>
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {loading ? "Excluindo..." : "Confirmar exclusão"}
           </Button>
         </DialogContent>

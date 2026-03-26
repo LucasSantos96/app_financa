@@ -1,12 +1,14 @@
 "use client"
 
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Check, Trash2, Edit, History } from "lucide-react"
+import { Check, Loader2, Trash2, Edit, History } from "lucide-react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface Conta {
   id: string
@@ -42,6 +44,9 @@ function compareContasAPagar(a: Conta, b: Conta) {
 
 export function AccountsList({ contas }: AccountsListProps) {
   const router = useRouter()
+  const [contaParaPagar, setContaParaPagar] = useState<Conta | null>(null)
+  const [registrarSaida, setRegistrarSaida] = useState(false)
+  const [loadingPagamento, setLoadingPagamento] = useState(false)
 
   const formatCurrency = (value: number) => 
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
@@ -49,20 +54,32 @@ export function AccountsList({ contas }: AccountsListProps) {
   const formatCompetencia = (mes: number, ano: number) =>
     `${String(mes).padStart(2, "0")}/${ano}`
 
-  const marcarComoPaga = async (contaId: string) => {
+  const abrirModalPagamento = (conta: Conta) => {
+    setContaParaPagar(conta)
+    setRegistrarSaida(false)
+  }
+
+  const marcarComoPaga = async () => {
+    if (!contaParaPagar || loadingPagamento) return
+
+    setLoadingPagamento(true)
+
     try {
-      const res = await fetch(`/api/contas/${contaId}`, {
+      const res = await fetch(`/api/contas/${contaParaPagar.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "PAGA" }),
+        body: JSON.stringify({ status: "PAGA", registrarSaida }),
       })
 
       if (!res.ok) throw new Error("Erro ao marcar como paga")
 
       toast.success("Conta marcada como paga!")
+      setContaParaPagar(null)
       router.refresh()
     } catch {
       toast.error("Erro ao marcar como paga")
+    } finally {
+      setLoadingPagamento(false)
     }
   }
 
@@ -144,7 +161,7 @@ export function AccountsList({ contas }: AccountsListProps) {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => marcarComoPaga(conta.id)}
+                        onClick={() => abrirModalPagamento(conta)}
                         className="h-7 w-7 p-0 text-green-600"
                         title="Marcar como paga"
                       >
@@ -205,6 +222,53 @@ export function AccountsList({ contas }: AccountsListProps) {
           )}
         </CardContent>
       </Card>
+
+      <Dialog
+        open={Boolean(contaParaPagar)}
+        onOpenChange={(open) => {
+          if (!open && !loadingPagamento) {
+            setContaParaPagar(null)
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Marcar conta como paga</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600">
+            Essa conta deve ser registrada como saída do saldo atual?
+          </p>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={registrarSaida}
+              onChange={(e) => setRegistrarSaida(e.target.checked)}
+              disabled={loadingPagamento}
+            />
+            Sim, subtrair do saldo atual
+          </label>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => setContaParaPagar(null)}
+              disabled={loadingPagamento}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              className="flex-1"
+              onClick={marcarComoPaga}
+              disabled={loadingPagamento}
+            >
+              {loadingPagamento && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {loadingPagamento ? "Processando..." : "Confirmar"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

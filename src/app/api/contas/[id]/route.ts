@@ -40,7 +40,7 @@ export async function PATCH(
 
     const { id } = await params
     const body = await req.json()
-    const { status } = body
+    const { status, registrarSaida } = body
 
     const conta = await prisma.contaMensal.findFirst({
       where: {
@@ -54,7 +54,8 @@ export async function PATCH(
     }
 
     const statusValido = status === "PENDENTE" || status === "PAGA" || status === "ATRASADA"
-    const onlyStatusUpdate = statusValido && Object.keys(body).length === 1
+    const possuiApenasCamposDeStatus = Object.keys(body).every((key) => key === "status" || key === "registrarSaida")
+    const onlyStatusUpdate = statusValido && possuiApenasCamposDeStatus
 
     if (onlyStatusUpdate) {
       const novoStatus = status as "PENDENTE" | "PAGA" | "ATRASADA"
@@ -65,11 +66,18 @@ export async function PATCH(
           data: { status: novoStatus },
         })
 
+        const contaFoiMarcadaComoPaga = novoStatus === "PAGA" && conta.status !== "PAGA"
+
         const deveCriarProximaParcela =
+          contaFoiMarcadaComoPaga &&
           novoStatus === "PAGA" &&
-          conta.status !== "PAGA" &&
           conta.parcelada &&
           conta.parcelaAtual < conta.totalParcelas
+
+        const deveCriarProximaContaFixa =
+          contaFoiMarcadaComoPaga &&
+          conta.fixa &&
+          !conta.parcelada
 
         if (deveCriarProximaParcela) {
           const prox = nextMonth(conta.mes, conta.ano)
@@ -105,6 +113,53 @@ export async function PATCH(
               },
             })
           }
+        }
+
+        if (deveCriarProximaContaFixa) {
+          const prox = nextMonth(conta.mes, conta.ano)
+
+          const contaFixaJaExiste = await tx.contaMensal.findFirst({
+            where: {
+              usuarioId: conta.usuarioId,
+              nome: conta.nome,
+              fixa: true,
+              parcelada: false,
+              mes: prox.mes,
+              ano: prox.ano,
+            },
+          })
+
+          if (!contaFixaJaExiste) {
+            await tx.contaMensal.create({
+              data: {
+                nome: conta.nome,
+                valor: conta.valor,
+                dataVencimento: conta.dataVencimento,
+                mes: prox.mes,
+                ano: prox.ano,
+                status: getStatusByReferenceDate(conta.dataVencimento, prox.mes, prox.ano),
+                tipo: conta.tipo,
+                fixa: true,
+                parcelada: false,
+                parcelaAtual: 1,
+                totalParcelas: 1,
+                observacoes: conta.observacoes,
+                usuarioId: conta.usuarioId,
+              },
+            })
+          }
+        }
+
+        if (contaFoiMarcadaComoPaga && registrarSaida === true) {
+          await tx.saida.create({
+            data: {
+              usuarioId: conta.usuarioId,
+              descricao: `Pagamento de conta: ${conta.nome}`,
+              valor: conta.valor,
+              categoria: "Contas",
+              data: new Date(),
+            },
+          })
         }
 
         return updatedConta
@@ -168,8 +223,7 @@ export async function PATCH(
     }
 
     if (conta.status !== "PAGA" && typeof dataAtualizacao.dataVencimento === "number") {
-      const now = new Date()
-      dataAtualizacao.status = dataAtualizacao.dataVencimento < now.getDate() ? "ATRASADA" : "PENDENTE"
+      dataAtualizacao.status = getStatusByReferenceDate(dataAtualizacao.dataVencimento, conta.mes, conta.ano)
     }
 
     const updated = await prisma.contaMensal.update({
