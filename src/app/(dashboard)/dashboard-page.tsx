@@ -115,12 +115,12 @@ export default function DashboardPage({
       periodoLabel = `Últimos ${periodoDias} dias`
     }
 
-    const entradasAgrupadas = entradasFiltradas.reduce((acc, e) => {
+    const entradasAgrupadas = entradasFiltradas.reduce((acc: Record<string, number>, e: { categoria: string; valor: number }) => {
       acc[e.categoria] = (acc[e.categoria] || 0) + e.valor
       return acc
     }, {} as Record<string, number>)
 
-    const saidasAgrupadas = saidasFiltradas.reduce((acc, s) => {
+    const saidasAgrupadas = saidasFiltradas.reduce((acc: Record<string, number>, s: { categoria: string; valor: number }) => {
       acc[s.categoria] = (acc[s.categoria] || 0) + s.valor
       return acc
     }, {} as Record<string, number>)
@@ -142,8 +142,8 @@ export default function DashboardPage({
     }
   }, [initialEntradas, initialSaidas, periodo, dataInicio, dataFim, periodoDias])
 
-  const totalEntradas = entradas.reduce((acc, e) => acc + e.valor, 0)
-  const totalSaidas = saidas.reduce((acc, s) => acc + s.valor, 0)
+  const totalEntradas = entradas.reduce((acc: number, e: { valor: number }) => acc + e.valor, 0)
+  const totalSaidas = saidas.reduce((acc: number, s: { valor: number }) => acc + s.valor, 0)
   const saldo = totalEntradas - totalSaidas
 
   const taxaPoupanca = totalEntradas > 0 ? ((totalEntradas - totalSaidas) / totalEntradas * 100) : 0
@@ -151,7 +151,7 @@ export default function DashboardPage({
 
   const contasPendentes = (initialContas || []).filter(c => c.status === 'PENDENTE')
   const contasAtrasadas = (initialContas || []).filter(c => c.status === 'ATRASADA')
-  const totalContasPendentes = contasPendentes.reduce((acc, c) => acc + c.valor, 0)
+  const totalContasPendentes = contasPendentes.reduce((acc: number, c: { valor: number }) => acc + c.valor, 0)
 
   const formatCurrency = (value: number) => 
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)

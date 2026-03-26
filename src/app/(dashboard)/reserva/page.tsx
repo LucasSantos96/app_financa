@@ -75,7 +75,7 @@ export default async function ReservaPage() {
         <CardContent>
           {reserva?.transacoes && reserva.transacoes.length > 0 ? (
             <div className="space-y-3">
-              {reserva.transacoes.map(transacao => (
+              {reserva.transacoes.map((transacao: { id: string; tipo: string; valor: number; data: Date }) => (
                 <div key={transacao.id} className="flex justify-between items-center text-sm">
                   <div className="flex items-center gap-2">
                     {transacao.tipo === 'DEPOSITO' ? (
