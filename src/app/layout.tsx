@@ -12,6 +12,9 @@ const ibmPlexSans = IBM_Plex_Sans({
 export const metadata: Metadata = {
   title: "App Finanças",
   description: "Gestão financeira pessoal",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({

@@ -3,84 +3,97 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id              String   @id @default(cuid())
-  email           String   @unique
-  senha           String
-  nome            String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  reservas        ReservaEmergencia[]
-  entradas        Entrada[]
-  saidas          Saida[]
-  contasMensais  ContaMensal[]
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  email      String   @unique
+  senha      String
+  nome       String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  reservas   ReservaEmergencia[] @relation("UserReservas")
+  entradas   Entrada[] @relation("UserEntradas")
+  saidas     Saida[] @relation("UserSaidas")
+  contas     ContaMensal[] @relation("UserContas")
+
+  @@map("users")
 }
 
 model ContaMensal {
-  id            String   @id @default(cuid())
-  nome          String
-  valor         Float
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  nome           String
+  valor          Float
   dataVencimento Int
-  mes           Int
-  ano           Int
-  status        StatusConta @default(PENDENTE)
-  tipo          TipoConta
-  fixa          Boolean  @default(false)
-  parcelada     Boolean  @default(false)
-  parcelaAtual  Int      @default(1)
-  totalParcelas Int      @default(1)
-  observacoes   String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  usuarioId     String
-  usuario       User     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  mes            Int
+  ano            Int
+  status         StatusConta @default(PENDENTE)
+  tipo           TipoConta
+  fixa           Boolean  @default(false)
+  parcelada      Boolean  @default(false)
+  parcelaAtual   Int      @default(1)
+  totalParcelas  Int      @default(1)
+  observacoes    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  usuarioId      String   @db.ObjectId
+  usuario        User     @relation("UserContas", fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("contas_mensais")
 }
 
 model Entrada {
-  id          String   @id @default(cuid())
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
   descricao   String
   valor       Float
   data        DateTime @default(now())
   categoria   String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  usuarioId   String
-  usuario     User     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuarioId   String   @db.ObjectId
+  usuario     User     @relation("UserEntradas", fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("entradas")
 }
 
 model Saida {
-  id              String   @id @default(cuid())
-  descricao       String
-  valor           Float
-  data            DateTime @default(now())
-  categoria       String
-  contaVinculadaId String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  usuarioId       String
-  usuario         User     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  descricao        String
+  valor            Float
+  data             DateTime @default(now())
+  categoria        String
+  contaVinculadaId String?  @db.ObjectId
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  usuarioId        String   @db.ObjectId
+  usuario          User     @relation("UserSaidas", fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("saidas")
 }
 
 model ReservaEmergencia {
-  id          String   @id @default(cuid())
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
   valor       Float    @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  usuarioId   String
-  usuario     User     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuarioId   String   @db.ObjectId
+  usuario     User     @relation("UserReservas", fields: [usuarioId], references: [id], onDelete: Cascade)
   transacoes  TransacaoReserva[]
+
+  @@map("reservas_emergenciais")
 }
 
 model TransacaoReserva {
-  id        String   @id @default(cuid())
+  id        String              @id @default(auto()) @map("_id") @db.ObjectId
   tipo      TipoTransacaoReserva
   valor     Float
   data      DateTime @default(now())
-  reservaId String
+  reservaId String   @db.ObjectId
   reserva   ReservaEmergencia @relation(fields: [reservaId], references: [id], onDelete: Cascade)
+
+  @@map("transacoes_reservas")
 }
 
 enum StatusConta {
