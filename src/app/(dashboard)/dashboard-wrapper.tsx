@@ -15,10 +15,8 @@ export default async function DashboardWrapper() {
   const contas = await prisma.contaMensal.findMany({
     where: {
       usuarioId: session.user.id,
-      mes,
-      ano,
     },
-    orderBy: { dataVencimento: 'asc' }
+    orderBy: [{ ano: 'asc' }, { mes: 'asc' }, { dataVencimento: 'asc' }],
   })
 
   const entradas = await prisma.entrada.findMany({

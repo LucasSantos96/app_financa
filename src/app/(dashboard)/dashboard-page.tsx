@@ -62,6 +62,18 @@ interface DashboardProps {
   ano: number
 }
 
+function compareByDueDate(a: ContaMensal, b: ContaMensal) {
+  if (a.ano !== b.ano) return a.ano - b.ano
+  if (a.mes !== b.mes) return a.mes - b.mes
+  return a.dataVencimento - b.dataVencimento
+}
+
+function compareContasAPagar(a: ContaMensal, b: ContaMensal) {
+  if (a.status === "ATRASADA" && b.status !== "ATRASADA") return -1
+  if (a.status !== "ATRASADA" && b.status === "ATRASADA") return 1
+  return compareByDueDate(a, b)
+}
+
 const COLORS = ['#22c55e', '#ef4444', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4']
 
 export default function DashboardPage({ 
@@ -151,7 +163,10 @@ export default function DashboardPage({
 
   const contasPendentes = (initialContas || []).filter(c => c.status === 'PENDENTE')
   const contasAtrasadas = (initialContas || []).filter(c => c.status === 'ATRASADA')
-  const totalContasPendentes = contasPendentes.reduce((acc: number, c: { valor: number }) => acc + c.valor, 0)
+  const contasAPagar = (initialContas || [])
+    .filter(c => c.status !== "PAGA")
+    .sort(compareContasAPagar)
+  const totalContasPendentes = contasAPagar.reduce((acc: number, c: { valor: number }) => acc + c.valor, 0)
 
   const formatCurrency = (value: number) => 
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
@@ -285,6 +300,37 @@ export default function DashboardPage({
         </Card>
       </div>
 
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Contas a pagar</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {contasAPagar.length === 0 ? (
+            <p className="text-sm text-gray-500">Nenhuma conta pendente.</p>
+          ) : (
+            <div className="flex gap-2 overflow-x-auto pb-1 snap-x">
+              {contasAPagar.slice(0, 8).map((conta) => (
+                <div
+                  key={conta.id}
+                  className={`min-w-[220px] rounded-md border p-2 snap-start ${conta.status === "ATRASADA" ? "border-red-300 bg-red-50" : "border-yellow-200 bg-yellow-50"}`}
+                >
+                  <p className="text-sm font-medium">{conta.nome}</p>
+                  <p className="text-xs text-gray-500">
+                    Venc: {String(conta.dataVencimento).padStart(2, "0")}/{String(conta.mes).padStart(2, "0")}/{conta.ano}
+                  </p>
+                  <p className={`text-sm font-bold mt-1 ${conta.status === "ATRASADA" ? "text-red-600" : "text-yellow-700"}`}>
+                    {formatCurrency(conta.valor)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+          <Link href="/contas" className="text-xs text-blue-600 mt-2 block hover:underline">
+            Ver todas →
+          </Link>
+        </CardContent>
+      </Card>
+
       {saidasPorCategoria.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
@@ -348,42 +394,13 @@ export default function DashboardPage({
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2 text-red-700">
               <AlertCircle className="h-4 w-4" />
-              Contas Atrasadas
+              Atenção com atrasos
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {contasAtrasadas.map(conta => (
-                <div key={conta.id} className="flex justify-between text-sm">
-                  <span>{conta.nome}</span>
-                  <span className="font-medium text-red-600">{formatCurrency(conta.valor)}</span>
-                </div>
-              ))}
-            </div>
-            <Link href="/contas" className="text-xs text-red-600 mt-2 block hover:underline">
-              Ver todas →
-            </Link>
-          </CardContent>
-        </Card>
-      )}
-
-      {contasPendentes.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Próximas Contas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {contasPendentes.slice(0, 5).map(conta => (
-                <div key={conta.id} className="flex justify-between items-center text-sm">
-                  <span className="font-medium">{conta.nome}</span>
-                  <span className="font-medium">{formatCurrency(conta.valor)}</span>
-                </div>
-              ))}
-            </div>
-            <Link href="/contas" className="text-xs text-blue-600 mt-2 block hover:underline">
-              Ver todas →
-            </Link>
+            <p className="text-sm text-red-700">
+              Você tem {contasAtrasadas.length} conta(s) atrasada(s). Priorize essas contas no carrossel acima.
+            </p>
           </CardContent>
         </Card>
       )}

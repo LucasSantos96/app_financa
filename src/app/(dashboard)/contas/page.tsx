@@ -13,16 +13,12 @@ export default async function ContasPage() {
   if (!session) return null
 
   const now = new Date()
-  const mes = now.getMonth() + 1
-  const ano = now.getFullYear()
 
   const contas = await prisma.contaMensal.findMany({
     where: {
       usuarioId: session.user.id,
-      mes,
-      ano,
     },
-    orderBy: { dataVencimento: 'asc' },
+    orderBy: [{ ano: 'asc' }, { mes: 'asc' }, { dataVencimento: 'asc' }],
   })
 
   const contasPendentes = contas.filter((c: { status: string }) => c.status === 'PENDENTE')
@@ -64,10 +60,7 @@ export default async function ContasPage() {
       </div>
 
       <AccountsList 
-        contas={contas} 
-        mes={mes} 
-        ano={ano}
-        userId={session.user.id}
+        contas={contas}
       />
     </div>
   )

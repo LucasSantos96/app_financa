@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Card, CardContent } from "@/components/ui/card"
@@ -27,16 +26,28 @@ interface Conta {
 
 interface AccountsListProps {
   contas: Conta[]
-  mes: number
-  ano: number
-  userId: string
 }
 
-export function AccountsList({ contas, mes, ano, userId }: AccountsListProps) {
+function compareByDueDate(a: Conta, b: Conta) {
+  if (a.ano !== b.ano) return a.ano - b.ano
+  if (a.mes !== b.mes) return a.mes - b.mes
+  return a.dataVencimento - b.dataVencimento
+}
+
+function compareContasAPagar(a: Conta, b: Conta) {
+  if (a.status === "ATRASADA" && b.status !== "ATRASADA") return -1
+  if (a.status !== "ATRASADA" && b.status === "ATRASADA") return 1
+  return compareByDueDate(a, b)
+}
+
+export function AccountsList({ contas }: AccountsListProps) {
   const router = useRouter()
 
   const formatCurrency = (value: number) => 
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+
+  const formatCompetencia = (mes: number, ano: number) =>
+    `${String(mes).padStart(2, "0")}/${ano}`
 
   const marcarComoPaga = async (contaId: string) => {
     try {
@@ -86,79 +97,117 @@ export function AccountsList({ contas, mes, ano, userId }: AccountsListProps) {
     )
   }
 
-  const contasVisiveis = contas.filter(c => c.status !== 'PAGA')
+  const contasAPagar = contas
+    .filter((c) => c.status !== "PAGA")
+    .sort(compareContasAPagar)
 
-  if (contasVisiveis.length === 0) {
-    return (
-      <Card>
-        <CardContent className="py-8 text-center text-gray-500">
-          <Check className="h-8 w-8 mx-auto mb-2 text-green-500" />
-          <p>Todas as contas foram pagas!</p>
-        </CardContent>
-      </Card>
-    )
-  }
+  const contasPagas = contas
+    .filter((c) => c.status === "PAGA")
+    .sort((a, b) => compareByDueDate(b, a))
 
   return (
     <div className="space-y-2">
-      {contasVisiveis.map(conta => (
-        <Card key={conta.id} className={`
-          ${conta.status === 'ATRASADA' ? 'border-red-300 bg-red-50' : ''}
-          ${conta.status === 'PENDENTE' ? 'border-yellow-200 bg-yellow-50' : ''}
-        `}>
-          <CardContent className="p-3">
-            <div className="flex justify-between items-start">
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{conta.nome}</span>
-                  {conta.fixa && <Badge variant="secondary" className="text-xs">Fixa</Badge>}
-                  {conta.parcelada && (
-                    <Badge variant="outline" className="text-xs">
-                      {conta.parcelaAtual}/{conta.totalParcelas}
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-sm text-gray-500">
-                  Venc: {conta.dataVencimento}/{conta.mes}
-                </p>
-                {conta.observacoes && (
-                  <p className="text-xs text-gray-400 mt-1">{conta.observacoes}</p>
-                )}
-              </div>
-              <div className="text-right">
-                <p className="font-bold">{formatCurrency(conta.valor)}</p>
-                <div className="flex gap-1 mt-1 justify-end">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => marcarComoPaga(conta.id)}
-                    className="h-7 w-7 p-0 text-green-600"
-                    title="Marcar como paga"
-                  >
-                    <Check className="h-4 w-4" />
-                  </Button>
-                  <Link 
-                    href={`/contas/${conta.id}/editar`}
-                    className="h-7 w-7 p-0 inline-flex items-center justify-center hover:bg-gray-100 rounded"
-                    title="Editar"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Link>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => excluirConta(conta.id)}
-                    className="h-7 w-7 p-0 text-red-600"
-                    title="Excluir"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
+      <p className="text-sm font-semibold">Contas a pagar</p>
+      {contasAPagar.length === 0 ? (
+        <Card>
+          <CardContent className="py-8 text-center text-gray-500">
+            <Check className="h-8 w-8 mx-auto mb-2 text-green-500" />
+            <p>Todas as contas foram pagas!</p>
           </CardContent>
         </Card>
-      ))}
+      ) : (
+        <div className="flex gap-3 overflow-x-auto pb-1 snap-x">
+          {contasAPagar.map((conta) => (
+            <Card
+              key={conta.id}
+              className={`min-w-[260px] snap-start ${conta.status === "ATRASADA" ? "border-red-300 bg-red-50" : "border-yellow-200 bg-yellow-50"}`}
+            >
+              <CardContent className="p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{conta.nome}</span>
+                      {conta.fixa && <Badge variant="secondary" className="text-xs">Fixa</Badge>}
+                      {conta.parcelada && (
+                        <Badge variant="outline" className="text-xs">
+                          {conta.parcelaAtual}/{conta.totalParcelas}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-500">Venc: {String(conta.dataVencimento).padStart(2, "0")}/{String(conta.mes).padStart(2, "0")}</p>
+                    <p className="text-xs text-gray-400">Competência {formatCompetencia(conta.mes, conta.ano)}</p>
+                    {conta.observacoes && <p className="text-xs text-gray-400 mt-1">{conta.observacoes}</p>}
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold">{formatCurrency(conta.valor)}</p>
+                    <div className="flex gap-1 mt-1 justify-end">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => marcarComoPaga(conta.id)}
+                        className="h-7 w-7 p-0 text-green-600"
+                        title="Marcar como paga"
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Link
+                        href={`/contas/${conta.id}/editar`}
+                        className="h-7 w-7 p-0 inline-flex items-center justify-center hover:bg-gray-100 rounded"
+                        title="Editar"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => excluirConta(conta.id)}
+                        className="h-7 w-7 p-0 text-red-600"
+                        title="Excluir"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <p className="text-sm font-semibold mt-4">Histórico de contas pagas</p>
+      {contasPagas.length === 0 ? (
+        <Card>
+          <CardContent className="py-6 text-center text-gray-500">
+            <p>Nenhuma conta paga ainda</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="flex gap-3 overflow-x-auto pb-1 snap-x">
+          {contasPagas.map((conta) => (
+            <Card key={conta.id} className="min-w-[260px] snap-start border-green-200 bg-green-50/40">
+              <CardContent className="p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{conta.nome}</span>
+                      {conta.parcelada && (
+                        <Badge variant="outline" className="text-xs">
+                          {conta.parcelaAtual}/{conta.totalParcelas}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-500">Competência {formatCompetencia(conta.mes, conta.ano)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-green-700">{formatCurrency(conta.valor)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

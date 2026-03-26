@@ -3,6 +3,30 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
+function getStatusByReferenceDate(dataVencimento: number, mes: number, ano: number) {
+  const now = new Date()
+  const anoAtual = now.getFullYear()
+  const mesAtual = now.getMonth() + 1
+
+  if (ano < anoAtual || (ano === anoAtual && mes < mesAtual)) {
+    return "ATRASADA" as const
+  }
+
+  if (ano === anoAtual && mes === mesAtual && dataVencimento < now.getDate()) {
+    return "ATRASADA" as const
+  }
+
+  return "PENDENTE" as const
+}
+
+function nextMonth(mes: number, ano: number) {
+  if (mes === 12) {
+    return { mes: 1, ano: ano + 1 }
+  }
+
+  return { mes: mes + 1, ano }
+}
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -33,9 +57,57 @@ export async function PATCH(
     const onlyStatusUpdate = statusValido && Object.keys(body).length === 1
 
     if (onlyStatusUpdate) {
-      const updated = await prisma.contaMensal.update({
-        where: { id },
-        data: { status: status as "PENDENTE" | "PAGA" | "ATRASADA" },
+      const novoStatus = status as "PENDENTE" | "PAGA" | "ATRASADA"
+
+      const updated = await prisma.$transaction(async (tx) => {
+        const updatedConta = await tx.contaMensal.update({
+          where: { id },
+          data: { status: novoStatus },
+        })
+
+        const deveCriarProximaParcela =
+          novoStatus === "PAGA" &&
+          conta.status !== "PAGA" &&
+          conta.parcelada &&
+          conta.parcelaAtual < conta.totalParcelas
+
+        if (deveCriarProximaParcela) {
+          const prox = nextMonth(conta.mes, conta.ano)
+
+          const parcelaJaExiste = await tx.contaMensal.findFirst({
+            where: {
+              usuarioId: conta.usuarioId,
+              nome: conta.nome,
+              parcelada: true,
+              totalParcelas: conta.totalParcelas,
+              parcelaAtual: conta.parcelaAtual + 1,
+              mes: prox.mes,
+              ano: prox.ano,
+            },
+          })
+
+          if (!parcelaJaExiste) {
+            await tx.contaMensal.create({
+              data: {
+                nome: conta.nome,
+                valor: conta.valor,
+                dataVencimento: conta.dataVencimento,
+                mes: prox.mes,
+                ano: prox.ano,
+                status: getStatusByReferenceDate(conta.dataVencimento, prox.mes, prox.ano),
+                tipo: conta.tipo,
+                fixa: conta.fixa,
+                parcelada: true,
+                parcelaAtual: conta.parcelaAtual + 1,
+                totalParcelas: conta.totalParcelas,
+                observacoes: conta.observacoes,
+                usuarioId: conta.usuarioId,
+              },
+            })
+          }
+        }
+
+        return updatedConta
       })
 
       return NextResponse.json(updated)
